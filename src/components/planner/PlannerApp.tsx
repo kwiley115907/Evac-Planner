@@ -89,6 +89,7 @@ export function PlannerApp() {
   const [gridMap, setGridMap] = useState<GridMap>(() => createEmptyGrid());
 
   const [printPreviewImage, setPrintPreviewImage] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [toolboxDefaultPos, setToolboxDefaultPos] = useState({ x: 16, y: 120 });
   const [deleteBoxDefaultPos, setDeleteBoxDefaultPos] = useState({ x: 16, y: 260 });
 
@@ -351,21 +352,28 @@ export function PlannerApp() {
       window.print();
       return;
     }
-    const html2canvas = (await import("html2canvas")).default;
-    const el = canvasRef.current;
-    const shot = await html2canvas(el, {
-      backgroundColor: "#ffffff",
-      scale: Math.max(2, window.devicePixelRatio || 1),
-      useCORS: true,
-      logging: false,
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
-    });
-    setPrintPreviewImage(shot.toDataURL("image/png", 1));
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    window.print();
+    setPrinting(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const el = canvasRef.current;
+      const shot = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        scale: Math.max(2, window.devicePixelRatio || 1),
+        useCORS: true,
+        logging: false,
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
+      });
+      setPrintPreviewImage(shot.toDataURL("image/png", 1));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      window.print();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Unable to generate the print preview.");
+    } finally {
+      setPrinting(false);
+    }
   }
 
   // ---------- marker actions ----------
@@ -686,7 +694,9 @@ export function PlannerApp() {
               </div>
               <div className="actions">
                 <button type="button" className="primary" onClick={handleExportJson}>Export Planner JSON</button>
-                <button type="button" onClick={handlePrint}>Print / Save PDF</button>
+                <button type="button" onClick={handlePrint} disabled={printing}>
+                  {printing ? "Generating…" : "Print / Save PDF"}
+                </button>
                 <button type="button" onClick={() => setFloorplan(null)}>Clear Floorplan</button>
                 <button type="button" className="danger" onClick={() => { setItems([]); setSelectedId(null); }}>Clear Planner</button>
               </div>
