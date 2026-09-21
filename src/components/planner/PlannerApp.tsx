@@ -271,6 +271,14 @@ export function PlannerApp() {
     return () => window.removeEventListener("resize", place);
   }, []);
 
+  useEffect(() => {
+    console.log("[diag] floorplan state changed ->", floorplan ? { kind: floorplan.kind, name: floorplan.name, srcLen: floorplan.src?.length } : null);
+  }, [floorplan]);
+
+  useEffect(() => {
+    console.log("[diag] ready/planId ->", { ready, planId, notFound });
+  }, [ready, planId, notFound]);
+
   function handlePaintModeChange(value: boolean) {
     setPaintMode(value);
     if (value) setSelectedId(null);
@@ -296,10 +304,14 @@ export function PlannerApp() {
       window.alert("Please upload a PDF, PNG, JPG, JPEG, or WEBP file.");
       return;
     }
+    console.log("[diag] handleFloorplanFile start", { name: file.name, type: file.type, isPdf, isImage });
     try {
       const src = isPdf ? await pdfFileToImageDataUrl(file) : await readFileAsDataUrl(file);
+      console.log("[diag] handleFloorplanFile got src, length=", src.length);
       setFloorplan({ kind: "image", src, name: file.name });
+      console.log("[diag] handleFloorplanFile setFloorplan called");
     } catch (err) {
+      console.error("[diag] handleFloorplanFile error", err);
       window.alert(err instanceof Error ? err.message : "Unable to load floorplan.");
     }
   }
